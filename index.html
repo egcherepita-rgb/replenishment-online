@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>План пополнения склада — Гардеробные системы</title>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --surface:#ffffff;
+      --surface-2:#f9fbff;
+      --line:#d7e0ef;
+      --line-2:#c7d4ea;
+      --text:#10233f;
+      --muted:#657a9a;
+      --brand:#143f8f;
+      --brand-2:#1c59c4;
+      --brand-soft:#eef4ff;
+      --ok:#1d9a57;
+      --ok-soft:#e9f8ef;
+      --warn:#c07c00;
+      --warn-soft:#fff7e8;
+      --shadow:0 10px 30px rgba(14,38,84,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+    button,input,select{font:inherit}
+    .page{max-width:1540px;margin:0 auto;padding:22px 24px 36px}
+    .section{background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:18px 22px}
+    .section + .section{margin-top:14px}
+    .eyebrow{margin:0 0 8px;font-size:12px;font-weight:800;color:var(--brand-2);text-transform:uppercase;letter-spacing:.04em}
+    h1{margin:0;font-size:34px;line-height:1.12;letter-spacing:-.02em}
+    .lead{margin:10px 0 0;color:var(--muted);font-size:16px;max-width:980px}
+    .section-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin:0 0 12px}
+    .section-title h2{margin:0;font-size:22px;line-height:1.15;letter-spacing:-.02em}
+    .section-title span{color:var(--muted);font-size:13px}
+    .grid{display:grid;gap:14px}
+    .params{grid-template-columns:1.15fr .9fr .72fr .82fr .95fr}
+    .files{grid-template-columns:1fr 1fr}
+    .field label{display:block;margin:0 0 7px;font-size:13px;font-weight:700;color:#25446e}
+    .field input,.field select,.search{width:100%;height:44px;border:1px solid var(--line-2);border-radius:14px;background:#fff;padding:0 14px;color:var(--text);outline:none}
+    .field input:focus,.field select:focus,.search:focus{border-color:var(--brand-2);box-shadow:0 0 0 3px rgba(28,89,196,.10)}
+    .file-card{border:1.5px dashed #bfd0ea;border-radius:18px;padding:14px 16px;min-height:92px;background:var(--surface-2);transition:.15s}
+    .file-card.loaded{border-style:solid;border-color:#79a7ea;background:#f3f8ff}
+    .file-card h3{margin:0 0 8px;font-size:15px;line-height:1.2}
+        .file-card input{width:100%;margin-top:4px}
+    .file-status{margin-top:6px;min-height:16px;color:var(--brand);font-size:12px;font-weight:700}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+    .button{height:44px;padding:0 16px;border:0;border-radius:12px;background:var(--brand);color:#fff;font-weight:800;cursor:pointer;transition:.15s}
+    .button:hover{background:#0f3270}
+    .button.secondary{background:var(--brand-soft);color:var(--brand)}
+    .button.ghost{background:#fff;color:var(--brand);border:1px solid var(--line-2)}
+    .button:disabled{opacity:.5;cursor:not-allowed}
+    .message{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;font-size:13px}
+    .message.visible{display:block}
+    .message.info{background:#eef6ff;border:1px solid #cadeff;color:#214c91}
+    .message.warning{background:#fff7e8;border:1px solid #f0cf8a;color:#805500}
+    .message.error{background:#fff2f2;border:1px solid #f1c1c1;color:#8d2f2f}
+    .warnings{display:none;margin-top:14px;padding:14px 16px;border-radius:16px;background:#fff7e8;border:1px solid #f0cf8a;color:#704c00;font-size:13px}
+    .warnings.visible{display:block}
+    .warnings strong{display:block;margin-bottom:6px;color:#654400}
+    .warnings ul{margin:0;padding-left:18px}
+    .warnings li + li{margin-top:5px}
+
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+    .kpi{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px 20px}
+    .kpi .label{font-size:13px;color:var(--muted);font-weight:700}
+    .kpi .value{margin-top:6px;font-size:32px;line-height:1;font-weight:800;letter-spacing:-.03em;color:var(--brand)}
+
+    .table-section{background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;margin-top:18px}
+    .toolbar{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .toolbar-left,.toolbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .toolbar-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
+    .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+    .dot.order{background:var(--ok)}
+    .dot.stock{background:#98a6ba}
+    .dot.no-demand{background:#c8d2df}
+    .search{width:320px;max-width:100%;height:42px;border-radius:12px}
+    .check{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);white-space:nowrap}
+    .check input{accent-color:var(--brand)}
+    .table-wrap{overflow:auto;max-height:calc(100vh - 240px);min-height:340px}
+    .result-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1540px}
+    .result-table thead th{position:sticky;top:0;z-index:2;background:var(--brand);color:#fff;padding:14px 10px;text-align:center;white-space:normal;vertical-align:middle;border-bottom:1px solid #0e3273;font-weight:800}
+    .result-table td{padding:11px 10px;border-bottom:1px solid #e7edf7;text-align:center;white-space:nowrap;background:#fff;vertical-align:middle}
+    .result-table td:nth-child(3){white-space:normal}
+    .result-table tbody tr:hover td{background:#f7faff}
+    .result-table tbody tr.order td{background:#fbfffd}
+    .result-table tbody tr.no-demand{opacity:.78}
+    .result-table tbody tr.no-demand td{background:#fbfcfe}
+    .sku{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:#244a8f}
+    .name{min-width:280px;max-width:420px;font-weight:700;color:#173665}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
+    .tag.order{background:var(--ok-soft);color:#0d7a3f}
+    .tag.stock{background:#edf2f9;color:#566b8d}
+    .tag.no-demand{background:#f1f4f8;color:#6f7f95}
+    .order-head{background:#0e3273!important;min-width:116px;text-align:center!important}
+    .order-cell{background:var(--warn-soft)!important}
+    .order-cell .manual{background:#fffef9;border:2px solid #f0c56a;font-weight:800;color:#8b5c00;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+    .manual{width:92px;height:36px;text-align:center;border:1px solid var(--line-2);border-radius:10px;padding:0 8px;outline:none}
+    .manual:focus{border-color:#f0b442;box-shadow:0 0 0 3px rgba(240,180,66,.16)}
+    .edited{border-color:#db9b17!important;background:#fff9eb!important}
+    .empty{padding:44px 24px;text-align:center;color:var(--muted)}
+    .foot{padding:18px 2px 0;font-size:13px;color:var(--muted)}
+    .foot details{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:13px 16px;margin-top:10px}
+    .foot summary{cursor:pointer;color:var(--brand);font-weight:800;font-size:14px}
+    .foot h3{margin:14px 0 7px;font-size:14px;color:var(--text)}
+    .foot ol,.foot ul{margin:8px 0 0 20px;padding:0}
+    .foot li{margin:4px 0}
+    .foot .formula{background:var(--brand-soft);border:1px solid #d7e6ff;border-radius:12px;padding:10px 12px;color:#1b3766;margin:8px 0}
+    .foot .meta{margin:12px 2px 0;font-size:12px;color:var(--muted)}
+
+    @media (max-width:1100px){.params{grid-template-columns:1fr 1fr}.summary{grid-template-columns:1fr 1fr 1fr}}
+    @media (max-width:760px){.page{padding:18px 14px 28px}.section{padding:16px}.files,.params,.summary{grid-template-columns:1fr}.toolbar{padding:14px}.toolbar-title{font-size:18px}h1{font-size:30px}.lead{font-size:14px}.button{width:100%}.toolbar .button{width:auto}.search{width:100%}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="section">
+      <h1>План пополнения склада филиала</h1>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Параметры поставки</h2>
+      </div>
+      <div class="grid params">
+        <div class="field"><label for="branch">Филиал</label><select id="branch"></select></div>
+        <div class="field"><label for="shipDate">Плановая дата отгрузки с завода</label><input id="shipDate" type="date"></div>
+        <div class="field"><label for="transitDays">Дней в пути до филиала</label><input id="transitDays" type="number" min="0" max="180" value="14"></div>
+        <div class="field"><label for="targetDays">Целевой срок хранения МЗ, дней</label><input id="targetDays" type="number" min="1" max="365" value="45"></div>
+        <div class="field"><label for="demandMode">Метод расчёта спроса</label><select id="demandMode"><option value="seasonal" selected>Сезонный спрос</option><option value="average">Средний спрос</option></select></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Загрузите актуальные отчёты</h2>
+      </div>
+      <div class="grid files">
+        <div class="file-card" id="stockCard">
+          <h3>Анализ материальных запасов</h3>
+          <input id="stockFile" type="file" accept=".xlsx,.xls,.xlsm,.csv">
+          <div class="file-status" id="stockStatus"></div>
+        </div>
+        <div class="file-card" id="plansCard">
+          <h3>Планы на отгрузку с завода</h3>
+          <input id="plansFile" type="file" accept=".xlsx,.xls,.xlsm,.csv">
+          <div class="file-status" id="plansStatus"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="button" id="calculate" type="button">Рассчитать потребность</button>
+        <button class="button ghost" id="resetManual" type="button" disabled>Сбросить ручные корректировки</button>
+      </div>
+      <div class="message" id="message" role="status" aria-live="polite"></div>
+      <div class="warnings" id="warnings" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section class="summary" id="summary" hidden>
+      <div class="kpi"><div class="label">Позиций к заказу</div><div class="value" id="kpiLines">—</div></div>
+      <div class="kpi"><div class="label">Итого к заказу, шт.</div><div class="value" id="kpiUnits">—</div></div>
+      <div class="kpi"><div class="label">Расчётная дата прихода</div><div class="value" id="kpiArrival">—</div></div>
+      <div class="kpi"><div class="label">Сезонность месяца прихода</div><div class="value" id="kpiSeason">—</div></div>
+    </section>
+
+    <section class="table-section" id="results" hidden>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <strong class="toolbar-title">Результат расчёта</strong>
+          <span class="legend">
+            <span><i class="dot order"></i>Заказать</span>
+            <span><i class="dot stock"></i>Запас</span>
+            <span><i class="dot no-demand"></i>Нет спроса</span>
+          </span>
+        </div>
+        <div class="toolbar-right">
+          <input class="search" id="search" placeholder="Поиск по артикулу или названию">
+          <label class="check"><input id="onlyOrder" type="checkbox" checked> Только позиции к заказу</label>
+          <button class="button secondary" id="exportXlsx" type="button">Скачать заявку XLSX</button>
+          <button class="button ghost" id="exportCsv" type="button">CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>Статус</th>
+              <th>Артикул</th>
+              <th>Наименование</th>
+              <th class="order-head">К заказу,<br>шт.</th>
+              <th>Свободно<br>с подтв.</th>
+              <th>Расчётная<br>потребность</th>
+              <th>В пути</th>
+              <th>Планы до<br>выбранной даты</th>
+              <th>Планы с выбранной<br>даты и позже</th>
+              <th>Прогноз до<br>прихода</th>
+              <th>Ср. спрос<br>шт./мес.</th>
+              <th>Коэф.<br>сезона</th>
+              <th>Целевой МЗ<br>шт.</th>
+              <th>Кратн.</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <details>
+        <summary>Краткая инструкция для логиста</summary>
+        <ol>
+          <li>Выберите филиал, плановую дату отгрузки с завода, количество дней в пути и целевой срок хранения МЗ.</li>
+          <li>Оставьте метод <strong>«Сезонный спрос»</strong>, если нужно учитывать месяц поставки. Метод <strong>«Средний спрос»</strong> используйте только для сверки с прежней логикой.</li>
+          <li>Загрузите два файла: <strong>«Анализ материальных запасов»</strong> и <strong>«Планы на отгрузку с завода»</strong>.</li>
+          <li>Нажмите <strong>«Рассчитать потребность»</strong>.</li>
+          <li>Если появился блок <strong>«Проверьте входные данные»</strong>, сначала проверьте выбранный филиал, даты и загруженные отчёты.</li>
+          <li>Основной рабочий столбец — <strong>«К заказу, шт.»</strong>. При необходимости количество можно скорректировать вручную прямо в таблице.</li>
+          <li>После проверки скачайте заявку в формате <strong>XLSX</strong> или <strong>CSV</strong>.</li>
+        </ol>
+      </details>
+
+      <details>
+        <summary>Логика расчёта</summary>
+        <h3>1. Отбор данных</h3>
+        <ul>
+          <li>В расчёт попадают только SKU гардеробной системы из встроенного справочника.</li>
+          <li>Остатки и товар в пути берутся из отчёта <strong>«Анализ материальных запасов»</strong>.</li>
+          <li>Плановые отгрузки берутся из файла <strong>«Планы на отгрузку с завода»</strong> только по выбранному филиалу.</li>
+        </ul>
+
+        <h3>2. Спрос</h3>
+        <ul>
+          <li>Базовый спрос считается отдельно по каждому сочетанию <strong>филиал × SKU</strong>, потому что потребность филиалов отличается.</li>
+          <li>В режиме <strong>«Сезонный спрос»</strong> базовый спрос умножается на сезонный коэффициент месяца. Если период захватывает два месяца, программа считает спрос по дням каждого месяца.</li>
+          <li>В режиме <strong>«Средний спрос»</strong> сезонный коэффициент не применяется.</li>
+        </ul>
+
+        <h3>3. Целевой МЗ</h3>
+        <div class="formula">
+          <strong>Сезонный метод:</strong> целевой МЗ = сумма дневного сезонного спроса с даты прихода на выбранный срок хранения.<br>
+          <strong>Средний метод:</strong> целевой МЗ = среднемесячный спрос ÷ 30,44 × целевой срок хранения.
+        </div>
+
+        <h3>4. Итоговая потребность</h3>
+        <div class="formula">
+          Расчётная потребность = целевой МЗ + прогноз спроса до прихода − свободно с подтверждением − в пути − планы до выбранной даты.
+        </div>
+        <ul>
+          <li><strong>Планы до выбранной даты</strong> уменьшают заявку, потому что должны быть отгружены раньше текущей поставки.</li>
+          <li><strong>Планы с выбранной даты и позже</strong> показываются справочно и не уменьшают заявку.</li>
+          <li><strong>К заказу, шт.</strong> = расчётная потребность, округлённая вверх до кратности упаковки.</li>
+        </ul>
+      </details>
+
+      <p class="meta">Исторический спрос и сезонные коэффициенты обновлены по отгрузкам 2025 и 2026: 177 SKU, 35 филиалов, версия данных — 08.07.2026.</p>
+    </footer>
+  </main>
+  <script src="model-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
